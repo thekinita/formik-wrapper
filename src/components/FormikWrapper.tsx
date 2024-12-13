@@ -1,49 +1,62 @@
 import React from 'react'
 import { Field, FieldProps } from 'formik'
 import {
-  Checkbox,
   FormControl,
+  FormErrorMessage,
+  VStack,
   Radio,
-  RadioGroup,
-  VStack
+  RadioGroup
 } from '@chakra-ui/react'
 
 interface FormikWrapperProps {
   name: string
-  type: 'checkbox' | 'radio'
-  options: { label: string; value?: string }[]
+  as: React.ComponentType<any>
+  options?: { label: string; value?: string }[] // Для радио-групп
+  [key: string]: any
 }
 
 const FormikWrapper: React.FC<FormikWrapperProps> = ({
   name,
-  type,
-  options
+  as: Component,
+  options,
+  ...props
 }) => (
   <Field name={name}>
-    {({ field }: FieldProps) => (
-      <FormControl>
-        {type === 'radio' ? (
-          <RadioGroup>
-            <VStack alignItems="start">
-              {options?.map((option) => (
-                <Radio
-                  key={option.value}
-                  {...field}
-                  value={option.value}
-                  isChecked={field.value === option.value}
-                >
-                  {option.label}
-                </Radio>
-              ))}
-            </VStack>
-          </RadioGroup>
-        ) : (
-          <Checkbox {...field} isChecked={field.value}>
-            {options[0].label}
-          </Checkbox>
-        )}
-      </FormControl>
-    )}
+    {({ field, meta, form }: FieldProps) => {
+      const handleChange = (value: any) => form.setFieldValue(name, value)
+
+      const isNumberInput = Component.displayName === 'NumberInput'
+
+      return (
+        <FormControl isInvalid={!!meta.error && meta.touched}>
+          {isNumberInput ? (
+            <Component
+              {...field}
+              {...props}
+              value={field.value || ''}
+              onChange={(value: number) => handleChange(Number(value))}
+            >
+              {props.children}
+            </Component>
+          ) : options ? (
+            <RadioGroup {...field} {...props} onChange={handleChange}>
+              <VStack align="flex-start">
+                {options.map(({ label, value }) => (
+                  <Radio key={value} value={value}>
+                    {label}
+                  </Radio>
+                ))}
+              </VStack>
+            </RadioGroup>
+          ) : (
+            <Component {...field} {...props} />
+          )}
+          {meta.touched && meta.error && (
+            <FormErrorMessage>{meta.error}</FormErrorMessage>
+          )}
+        </FormControl>
+      )
+    }}
   </Field>
 )
 
